@@ -2,8 +2,9 @@ import React from 'react';
 import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
 import ErrorBoundary from './components/ErrorBoundary';
 import Navbar from './components/Navbar';
+import Login from './components/Login';
 import LandingPage from './pages/LandingPage';
-import JobSeekerDashboard from './pages/JobSeekerDashboard';
+import ApplicantDashboard from './pages/ApplicantDashboard';
 import RecruiterDashboard from './pages/RecruiterDashboard';
 
 function App() {
@@ -14,8 +15,10 @@ function App() {
           <Navbar />
           <Routes>
             <Route path="/" element={<LandingPage />} />
-            <Route path="/job-seeker" element={<JobSeekerDashboard />} />
-            <Route path="/recruiter" element={<RecruiterDashboard />} />
+            <Route path="/applicant-login" element={<Login userType="applicant" />} />
+            <Route path="/recruiter-login" element={<Login userType="recruiter" />} />
+            <Route path="/applicant-dashboard" element={<ApplicantDashboard />} />
+            <Route path="/recruiter-dashboard" element={<RecruiterDashboard />} />
           </Routes>
         </div>
       </Router>
