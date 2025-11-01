@@ -1,12 +1,16 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { useAuth } from '../context/AuthContext';
 
 const Login = ({ userType }) => {
   const [formData, setFormData] = useState({
     email: '',
     password: ''
   });
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState('');
   const navigate = useNavigate();
+  const { login } = useAuth();
 
   const handleInputChange = (e) => {
     setFormData({
@@ -15,19 +19,25 @@ const Login = ({ userType }) => {
     });
   };
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
-    if (formData.email && formData.password) {
-      localStorage.setItem('userType', userType);
-      localStorage.setItem('userEmail', formData.email);
+    setLoading(true);
+    setError('');
+
+    try {
+      const response = await login(formData.email, formData.password, userType);
       
-      if (userType === 'applicant') {
-        navigate('/applicant-dashboard');
-      } else {
-        navigate('/recruiter-dashboard');
+      if (response.success) {
+        if (userType === 'applicant') {
+          navigate('/applicant-dashboard');
+        } else {
+          navigate('/recruiter-dashboard');
+        }
       }
-    } else {
-      alert('Please fill in all fields');
+    } catch (error) {
+      setError(error.message || 'Login failed. Please try again.');
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -42,6 +52,12 @@ const Login = ({ userType }) => {
             {userType === 'applicant' ? 'Ready to find your dream job?' : 'Ready to find top talent?'}
           </p>
         </div>
+        
+        {error && (
+          <div className="mb-4 p-3 bg-red-900/50 border border-red-500 rounded-lg text-red-300 text-sm animate-slideInDown">
+            {error}
+          </div>
+        )}
         
         <form onSubmit={handleSubmit} className="space-y-6 animate-slideInUp animation-delay-500">
           <div className="animate-slideInLeft animation-delay-600">
@@ -76,13 +92,23 @@ const Login = ({ userType }) => {
           
           <button
             type="submit"
-            className="w-full bg-cyan-600 hover:bg-cyan-700 text-white font-semibold py-4 px-6 rounded-xl transition-all duration-300 shadow-lg hover:shadow-xl transform hover:scale-105 animate-bounceIn animation-delay-900"
+            disabled={loading}
+            className="w-full bg-cyan-600 hover:bg-cyan-700 disabled:bg-gray-600 disabled:cursor-not-allowed text-white font-semibold py-4 px-6 rounded-xl transition-all duration-300 shadow-lg hover:shadow-xl transform hover:scale-105 animate-bounceIn animation-delay-900"
           >
-            Login
+            {loading ? 'Logging in...' : 'Login'}
           </button>
         </form>
         
-        <div className="mt-6 text-center animate-fadeIn animation-delay-1000">
+        <div className="mt-6 text-center space-y-2 animate-fadeIn animation-delay-1000">
+          <p className="text-gray-400 text-sm">
+            Don't have an account?{' '}
+            <button
+              onClick={() => navigate(`/${userType}-signup`)}
+              className="text-cyan-400 hover:text-cyan-300 font-medium transition-all duration-200 hover:scale-110"
+            >
+              Sign up here
+            </button>
+          </p>
           <button
             onClick={() => navigate('/')}
             className="text-gray-400 hover:text-gray-300 text-sm font-medium transition-all duration-200 hover:scale-110"

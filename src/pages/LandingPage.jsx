@@ -16,19 +16,42 @@ const LandingPage = () => {
           </p>
         </div>
         
-        <div className="space-y-4">
-          <button
-            onClick={() => navigate('/applicant-login')}
-            className="w-full bg-cyan-600 hover:bg-cyan-700 text-white font-semibold py-4 px-6 rounded-xl transition-all duration-300 shadow-lg hover:shadow-xl transform hover:scale-105 animate-slideInLeft animation-delay-500"
-          >
-            I'm an Applicant
-          </button>
-          <button
-            onClick={() => navigate('/recruiter-login')}
-            className="w-full bg-gray-700 hover:bg-gray-600 text-white font-semibold py-4 px-6 rounded-xl transition-all duration-300 shadow-lg hover:shadow-xl border border-gray-600 transform hover:scale-105 animate-slideInRight animation-delay-700"
-          >
-            I'm a Recruiter
-          </button>
+        <div className="space-y-6">
+          <div className="space-y-3">
+            <h3 className="text-lg font-semibold text-gray-300 text-center">Job Seekers</h3>
+            <div className="grid grid-cols-2 gap-3">
+              <button
+                onClick={() => navigate('/applicant-login')}
+                className="bg-cyan-600 hover:bg-cyan-700 text-white font-semibold py-3 px-4 rounded-xl transition-all duration-300 shadow-lg hover:shadow-xl transform hover:scale-105"
+              >
+                Login
+              </button>
+              <button
+                onClick={() => navigate('/applicant-signup')}
+                className="bg-cyan-500 hover:bg-cyan-600 text-white font-semibold py-3 px-4 rounded-xl transition-all duration-300 shadow-lg hover:shadow-xl transform hover:scale-105"
+              >
+                Sign Up
+              </button>
+            </div>
+          </div>
+          
+          <div className="space-y-3">
+            <h3 className="text-lg font-semibold text-gray-300 text-center">Recruiters</h3>
+            <div className="grid grid-cols-2 gap-3">
+              <button
+                onClick={() => navigate('/recruiter-login')}
+                className="bg-gray-700 hover:bg-gray-600 text-white font-semibold py-3 px-4 rounded-xl transition-all duration-300 shadow-lg hover:shadow-xl border border-gray-600 transform hover:scale-105"
+              >
+                Login
+              </button>
+              <button
+                onClick={() => navigate('/recruiter-signup')}
+                className="bg-gray-600 hover:bg-gray-500 text-white font-semibold py-3 px-4 rounded-xl transition-all duration-300 shadow-lg hover:shadow-xl border border-gray-500 transform hover:scale-105"
+              >
+                Sign Up
+              </button>
+            </div>
+          </div>
         </div>
       </div>
     </div>

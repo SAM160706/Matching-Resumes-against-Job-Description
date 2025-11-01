@@ -1,14 +1,13 @@
 import React from 'react';
 import { Link, useNavigate } from 'react-router-dom';
+import { useAuth } from '../context/AuthContext';
 
 const Navbar = () => {
   const navigate = useNavigate();
-  const userType = localStorage.getItem('userType');
-  const userEmail = localStorage.getItem('userEmail');
+  const { user, logout, isAuthenticated } = useAuth();
 
-  const handleLogout = () => {
-    localStorage.removeItem('userType');
-    localStorage.removeItem('userEmail');
+  const handleLogout = async () => {
+    await logout();
     navigate('/');
   };
 
@@ -19,10 +18,10 @@ const Navbar = () => {
           JobMatch AI
         </Link>
         
-        {userEmail && (
+        {isAuthenticated && user && (
           <div className="flex items-center space-x-4">
             <div className="bg-gray-800 rounded-lg px-4 py-2 border border-gray-700">
-              <span className="text-sm font-medium text-gray-300">Welcome, {userEmail.split('@')[0]}</span>
+              <span className="text-sm font-medium text-gray-300">Welcome, {user.profile?.firstName || user.email.split('@')[0]}</span>
             </div>
             <button
               onClick={handleLogout}
