@@ -60,8 +60,10 @@ export const AuthProvider = ({ children }) => {
       await apiService.logout();
     } finally {
       setUser(null);
-      localStorage.removeItem('userType');
-      localStorage.removeItem('userEmail');
+      // Clear all localStorage data
+      localStorage.clear();
+      // Replace current history entry to prevent back navigation
+      window.history.replaceState(null, '', '/');
     }
   };
 

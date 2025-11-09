@@ -6,23 +6,44 @@ const RecruiterDashboard = () => {
   const [activeTab, setActiveTab] = useState('candidates');
   const [selectedCandidate, setSelectedCandidate] = useState(null);
   const [candidates, setCandidates] = useState([]);
-  const [jobData, setJobData] = useState({
-    title: '',
-    company: '',
-    description: '',
-    experience: '',
-    location: '',
-    skills: ''
+  const [myJobs, setMyJobs] = useState([]);
+  const [selectedJobForCandidates, setSelectedJobForCandidates] = useState(null);
+  const [jobData, setJobData] = useState(() => {
+    const saved = localStorage.getItem('jobFormData');
+    return saved ? JSON.parse(saved) : {
+      title: '',
+      company: '',
+      description: '',
+      experience: '',
+      location: '',
+      skills: ''
+    };
   });
-  const [uploadedImage, setUploadedImage] = useState(null);
-  const [imagePreview, setImagePreview] = useState(null);
+  const [uploadedImage, setUploadedImage] = useState(() => {
+    const saved = localStorage.getItem('uploadedImage');
+    return saved ? JSON.parse(saved) : null;
+  });
+  const [imagePreview, setImagePreview] = useState(() => {
+    return localStorage.getItem('imagePreview') || null;
+  });
 
   const handleImageUpload = (event) => {
     const file = event.target.files[0];
     if (file && file.type.startsWith('image/')) {
-      setUploadedImage(file);
+      const fileData = {
+        name: file.name,
+        size: file.size,
+        type: file.type,
+        lastModified: file.lastModified
+      };
+      setUploadedImage(fileData);
+      localStorage.setItem('uploadedImage', JSON.stringify(fileData));
+      
       const reader = new FileReader();
-      reader.onload = (e) => setImagePreview(e.target.result);
+      reader.onload = (e) => {
+        setImagePreview(e.target.result);
+        localStorage.setItem('imagePreview', e.target.result);
+      };
       reader.readAsDataURL(file);
     } else {
       alert('Please upload a valid image file');
@@ -55,143 +76,137 @@ Benefits:
   };
   const [sortBy, setSortBy] = useState('overall');
 
-  // Mock candidates data
+  // Fetch recruiter's jobs and candidates
   useEffect(() => {
-    const mockCandidates = [
-      {
-        id: 1,
-        name: "John Smith",
-        email: "john.smith@email.com",
-        phone: "+1 (555) 123-4567",
-        location: "New York, NY",
-        jobTitle: "Frontend Developer",
-        resumeName: "john_smith_resume.pdf",
-        appliedDate: "2 days ago",
-        overallMatch: 87,
-        breakdown: {
-          skills: {
-            score: 92,
-            details: {
-              matched: ["React", "JavaScript", "CSS", "HTML"],
-              missing: ["Git"]
-            }
-          },
-          experience: {
-            score: 85,
-            details: {
-              candidateYears: 3,
-              requiredYears: 3
-            }
-          },
-          education: {
-            score: 90,
-            details: {
-              match: "Bachelor's in Computer Science - Perfect match"
-            }
-          },
-          keywords: {
-            score: 80,
-            details: {}
-          }
-        }
-      },
-      {
-        id: 2,
-        name: "Sarah Johnson",
-        email: "sarah.j@email.com",
-        phone: "+1 (555) 987-6543",
-        location: "San Francisco, CA",
-        jobTitle: "Frontend Developer",
-        resumeName: "sarah_johnson_cv.pdf",
-        appliedDate: "1 week ago",
-        overallMatch: 78,
-        breakdown: {
-          skills: {
-            score: 75,
-            details: {
-              matched: ["React", "JavaScript"],
-              missing: ["CSS", "HTML", "Git"]
-            }
-          },
-          experience: {
-            score: 80,
-            details: {
-              candidateYears: 2,
-              requiredYears: 3
-            }
-          },
-          education: {
-            score: 85,
-            details: {
-              match: "Bachelor's in Information Technology - Good match"
-            }
-          },
-          keywords: {
-            score: 72,
-            details: {}
-          }
-        }
-      },
-      {
-        id: 3,
-        name: "Mike Chen",
-        email: "mike.chen@email.com",
-        phone: "+1 (555) 456-7890",
-        location: "Austin, TX",
-        jobTitle: "Full Stack Developer",
-        resumeName: "mike_chen_resume.docx",
-        appliedDate: "3 days ago",
-        overallMatch: 92,
-        breakdown: {
-          skills: {
-            score: 95,
-            details: {
-              matched: ["Node.js", "React", "MongoDB", "AWS"],
-              missing: ["Docker"]
-            }
-          },
-          experience: {
-            score: 90,
-            details: {
-              candidateYears: 4,
-              requiredYears: 4
-            }
-          },
-          education: {
-            score: 88,
-            details: {
-              match: "Master's in Computer Science - Excellent match"
-            }
-          },
-          keywords: {
-            score: 95,
-            details: {}
-          }
+    fetchMyJobs();
+  }, []);
+  
+  useEffect(() => {
+    if (activeTab === 'candidates' && myJobs.length > 0 && !selectedJobForCandidates) {
+      setSelectedJobForCandidates(myJobs[0]);
+      fetchCandidatesForJob(myJobs[0]._id);
+    }
+  }, [activeTab, myJobs]);
+
+  const fetchMyJobs = async () => {
+    try {
+      const response = await fetch('http://localhost:5001/api/jobs/my-jobs', {
+        credentials: 'include'
+      });
+      const data = await response.json();
+      if (data.success) {
+        setMyJobs(data.jobs);
+        if (data.jobs.length > 0) {
+          setSelectedJobForCandidates(data.jobs[0]);
+          fetchCandidatesForJob(data.jobs[0]._id);
         }
       }
-    ];
-    setCandidates(mockCandidates);
-  }, []);
-
-  const handleInputChange = (e) => {
-    setJobData({
-      ...jobData,
-      [e.target.name]: e.target.value
-    });
+    } catch (error) {
+      console.error('Error fetching my jobs:', error);
+    }
   };
 
-  const handleSubmit = (e) => {
+  const fetchCandidatesForJob = async (jobId) => {
+    try {
+      const response = await fetch(`http://localhost:5001/api/jobs/${jobId}/applications`, {
+        credentials: 'include'
+      });
+      const data = await response.json();
+      if (data.success) {
+        const formattedCandidates = data.applications.map(app => ({
+          id: app._id,
+          name: `${app.applicantId.profile?.firstName || ''} ${app.applicantId.profile?.lastName || ''}`.trim() || 'Anonymous',
+          email: app.applicantId.email,
+          phone: app.applicantId.profile?.phone || 'Not provided',
+          location: 'Not specified',
+          jobTitle: selectedJobForCandidates?.title || 'Job Applicant',
+          resumeName: app.resumeFileName,
+          appliedDate: new Date(app.createdAt).toLocaleDateString(),
+          overallMatch: app.matchScore.overall,
+          breakdown: {
+            skills: {
+              score: app.matchScore.skills,
+              details: { matched: [], missing: [] }
+            },
+            experience: {
+              score: app.matchScore.experience,
+              details: { candidateYears: 0, requiredYears: 0 }
+            },
+            education: {
+              score: app.matchScore.education,
+              details: { match: 'Education details not available' }
+            },
+            keywords: {
+              score: app.matchScore.keywords,
+              details: {}
+            }
+          }
+        }));
+        setCandidates(formattedCandidates);
+      }
+    } catch (error) {
+      console.error('Error fetching candidates:', error);
+      setCandidates([]);
+    }
+  };
+
+  const handleInputChange = (e) => {
+    const newJobData = {
+      ...jobData,
+      [e.target.name]: e.target.value
+    };
+    setJobData(newJobData);
+    localStorage.setItem('jobFormData', JSON.stringify(newJobData));
+  };
+
+  const handleSubmit = async (e) => {
     e.preventDefault();
     if (jobData.title && jobData.company) {
-      // Auto-generate description if not provided
-      if (!jobData.description) {
-        const autoDescription = `We are looking for a talented ${jobData.title} to join our team at ${jobData.company}. ${jobData.experience ? `The ideal candidate should have ${jobData.experience} of experience ` : ''}${jobData.skills ? `with expertise in ${jobData.skills}. ` : ''}${jobData.location ? `This position is ${jobData.location === 'Remote' ? 'fully remote' : `based in ${jobData.location}`}. ` : ''}Join us to work on exciting projects and grow your career in a dynamic environment.`;
-        setJobData({...jobData, description: autoDescription});
+      try {
+        // Auto-generate description if not provided
+        let description = jobData.description;
+        if (!description) {
+          description = `We are looking for a talented ${jobData.title} to join our team at ${jobData.company}. ${jobData.experience ? `The ideal candidate should have ${jobData.experience} of experience ` : ''}${jobData.skills ? `with expertise in ${jobData.skills}. ` : ''}${jobData.location ? `This position is ${jobData.location === 'Remote' ? 'fully remote' : `based in ${jobData.location}`}. ` : ''}Join us to work on exciting projects and grow your career in a dynamic environment.`;
+        }
+
+        const response = await fetch('http://localhost:5001/api/jobs', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          credentials: 'include',
+          body: JSON.stringify({
+            title: jobData.title.trim(),
+            company: jobData.company.trim(),
+            description: description.trim(),
+            skills: jobData.skills ? jobData.skills.trim() : '',
+            experience: jobData.experience ? jobData.experience.trim() : '',
+            location: jobData.location ? jobData.location.trim() : ''
+          })
+        });
+
+        const data = await response.json();
+        if (data.success) {
+          alert('Job posted successfully!');
+          const emptyJobData = { title: '', company: '', description: '', experience: '', location: '', skills: '' };
+          setJobData(emptyJobData);
+          setUploadedImage(null);
+          setImagePreview(null);
+          
+          // Clear localStorage
+          localStorage.setItem('jobFormData', JSON.stringify(emptyJobData));
+          localStorage.removeItem('uploadedImage');
+          localStorage.removeItem('imagePreview');
+          
+          fetchMyJobs(); // Refresh jobs list
+          setActiveTab('my-jobs'); // Switch to my jobs tab
+        } else {
+          alert('Error posting job: ' + data.message);
+        }
+      } catch (error) {
+        console.error('Error posting job:', error);
+        alert('Error posting job. Please try again.');
       }
-      alert('Job posted successfully!');
-      setJobData({ title: '', company: '', description: '', experience: '', location: '', skills: '' });
-      setUploadedImage(null);
-      setImagePreview(null);
     } else {
       alert('Please fill in job title and company name');
     }
@@ -228,6 +243,16 @@ Benefits:
                 Applied Candidates ({candidates.length})
               </button>
               <button
+                onClick={() => setActiveTab('my-jobs')}
+                className={`py-2 px-1 border-b-2 font-medium text-sm ${
+                  activeTab === 'my-jobs'
+                    ? 'border-cyan-500 text-cyan-400'
+                    : 'border-transparent text-gray-400 hover:text-gray-300'
+                }`}
+              >
+                My Jobs ({myJobs.length})
+              </button>
+              <button
                 onClick={() => setActiveTab('post-job')}
                 className={`py-2 px-1 border-b-2 font-medium text-sm ${
                   activeTab === 'post-job'
@@ -243,33 +268,148 @@ Benefits:
 
         {activeTab === 'candidates' && (
           <div>
-            {/* Sort Controls */}
-            <div className="mb-6 flex justify-between items-center">
-              <h2 className="text-xl font-semibold text-white">Applied Candidates</h2>
-              <div className="flex items-center space-x-4">
-                <label className="text-sm text-gray-400">Sort by:</label>
-                <select
-                  value={sortBy}
-                  onChange={(e) => setSortBy(e.target.value)}
-                  className="px-3 py-2 bg-gray-800 border border-gray-600 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-cyan-500 text-white"
-                >
-                  <option value="overall">Overall Match</option>
-                  <option value="skills">Skills Match</option>
-                  <option value="experience">Experience Match</option>
-                </select>
+            {/* Job Selection and Sort Controls */}
+            <div className="mb-6 space-y-4">
+              <div className="flex justify-between items-center">
+                <h2 className="text-xl font-semibold text-white">Applied Candidates</h2>
+                <div className="flex items-center space-x-4">
+                  <label className="text-sm text-gray-400">Sort by:</label>
+                  <select
+                    value={sortBy}
+                    onChange={(e) => setSortBy(e.target.value)}
+                    className="px-3 py-2 bg-gray-800 border border-gray-600 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-cyan-500 text-white"
+                  >
+                    <option value="overall">Overall Match</option>
+                    <option value="skills">Skills Match</option>
+                    <option value="experience">Experience Match</option>
+                  </select>
+                </div>
               </div>
+              
+              {/* Job Selection */}
+              {myJobs.length > 0 && (
+                <div className="bg-gray-800 rounded-lg p-4 border border-gray-700">
+                  <label className="block text-sm text-gray-400 mb-2">Select Job to View Candidates:</label>
+                  <select
+                    value={selectedJobForCandidates?._id || ''}
+                    onChange={(e) => {
+                      const job = myJobs.find(j => j._id === e.target.value);
+                      setSelectedJobForCandidates(job);
+                      fetchCandidatesForJob(e.target.value);
+                    }}
+                    className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-cyan-500"
+                  >
+                    {myJobs.map(job => (
+                      <option key={job._id} value={job._id}>
+                        {job.title} at {job.company} ({new Date(job.createdAt).toLocaleDateString()})
+                      </option>
+                    ))}
+                  </select>
+                  {selectedJobForCandidates && (
+                    <div className="mt-3 text-sm text-gray-400">
+                      <p><strong>Location:</strong> {selectedJobForCandidates.location}</p>
+                      <p><strong>Experience:</strong> {selectedJobForCandidates.experience}</p>
+                      <p><strong>Skills:</strong> {selectedJobForCandidates.skills.join(', ') || 'Not specified'}</p>
+                    </div>
+                  )}
+                </div>
+              )}
             </div>
 
             {/* Candidates List */}
-            <div className="space-y-4">
-              {sortedCandidates.map(candidate => (
-                <CandidateCard
-                  key={candidate.id}
-                  candidate={candidate}
-                  onViewDetails={handleViewResume}
-                />
-              ))}
+            {myJobs.length === 0 ? (
+              <div className="text-center py-12">
+                <div className="text-gray-400 text-lg mb-4">No jobs posted yet</div>
+                <p className="text-gray-500">Post your first job to start receiving applications!</p>
+              </div>
+            ) : candidates.length === 0 ? (
+              <div className="text-center py-12">
+                <div className="text-gray-400 text-lg mb-4">No applications yet</div>
+                <p className="text-gray-500">Applications for this job will appear here.</p>
+              </div>
+            ) : (
+              <div className="space-y-4">
+                {sortedCandidates.map(candidate => (
+                  <CandidateCard
+                    key={candidate.id}
+                    candidate={candidate}
+                    onViewDetails={handleViewResume}
+                  />
+                ))}
+              </div>
+            )}
+          </div>
+        )}
+
+        {activeTab === 'my-jobs' && (
+          <div>
+            <div className="mb-6 flex justify-between items-center">
+              <h2 className="text-xl font-semibold text-white">My Posted Jobs</h2>
+              <button
+                onClick={() => setActiveTab('post-job')}
+                className="bg-cyan-600 hover:bg-cyan-700 text-white px-4 py-2 rounded-lg font-medium transition-colors duration-200"
+              >
+                Post New Job
+              </button>
             </div>
+            
+            {myJobs.length === 0 ? (
+              <div className="text-center py-12">
+                <div className="text-gray-400 text-lg mb-4">No jobs posted yet</div>
+                <p className="text-gray-500 mb-6">Start by posting your first job to attract candidates!</p>
+                <button
+                  onClick={() => setActiveTab('post-job')}
+                  className="bg-cyan-600 hover:bg-cyan-700 text-white px-6 py-3 rounded-lg font-medium transition-colors duration-200"
+                >
+                  Post Your First Job
+                </button>
+              </div>
+            ) : (
+              <div className="grid gap-6">
+                {myJobs.map(job => (
+                  <div key={job._id} className="bg-gray-800 rounded-xl p-6 border border-gray-700">
+                    <div className="flex justify-between items-start mb-4">
+                      <div>
+                        <h3 className="text-xl font-bold text-white mb-2">{job.title}</h3>
+                        <p className="text-gray-400 mb-2">{job.company}</p>
+                        <div className="flex items-center space-x-4 text-sm text-gray-500">
+                          <span>📍 {job.location}</span>
+                          <span>💼 {job.experience}</span>
+                          <span>📅 {new Date(job.createdAt).toLocaleDateString()}</span>
+                        </div>
+                      </div>
+                      <div className="text-right">
+                        <div className="bg-cyan-600/20 text-cyan-400 px-3 py-1 rounded-lg text-sm font-medium mb-2">
+                          {job.isActive ? 'Active' : 'Inactive'}
+                        </div>
+                        <button
+                          onClick={() => {
+                            setSelectedJobForCandidates(job);
+                            fetchCandidatesForJob(job._id);
+                            setActiveTab('candidates');
+                          }}
+                          className="text-cyan-400 hover:text-cyan-300 text-sm font-medium transition-colors duration-200"
+                        >
+                          View Applications
+                        </button>
+                      </div>
+                    </div>
+                    
+                    {job.skills && job.skills.length > 0 && (
+                      <div className="flex flex-wrap gap-2 mb-4">
+                        {job.skills.map((skill, index) => (
+                          <span key={index} className="px-2 py-1 bg-gray-700 text-gray-300 text-xs rounded-lg">
+                            {skill}
+                          </span>
+                        ))}
+                      </div>
+                    )}
+                    
+                    <p className="text-gray-300 text-sm line-clamp-3">{job.description}</p>
+                  </div>
+                ))}
+              </div>
+            )}
           </div>
         )}
 
@@ -297,12 +437,16 @@ Benefits:
                         ].map((template, index) => (
                           <button
                             key={index}
-                            onClick={() => setJobData({
-                              ...jobData,
-                              title: template.title,
-                              skills: template.skills.join(', '),
-                              experience: template.exp
-                            })}
+                            onClick={() => {
+                              const newJobData = {
+                                ...jobData,
+                                title: template.title,
+                                skills: template.skills.join(', '),
+                                experience: template.exp
+                              };
+                              setJobData(newJobData);
+                              localStorage.setItem('jobFormData', JSON.stringify(newJobData));
+                            }}
                             className="p-3 bg-gray-700 hover:bg-gray-600 rounded-lg border border-gray-600 hover:border-cyan-500 transition-all duration-200 text-left"
                           >
                             <div className="text-white font-medium text-sm">{template.title}</div>

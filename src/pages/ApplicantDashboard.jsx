@@ -4,53 +4,61 @@ import MatchAnalysis from '../components/MatchAnalysis';
 import ResumeRecommendations from '../components/ResumeRecommendations';
 
 const ApplicantDashboard = () => {
-  const [uploadedResume, setUploadedResume] = useState(null);
-  const [selectedJob, setSelectedJob] = useState(null);
-  const [matchData, setMatchData] = useState(null);
-  const [recommendations, setRecommendations] = useState(null);
+  const [uploadedResume, setUploadedResume] = useState(() => {
+    const saved = localStorage.getItem('uploadedResume');
+    return saved ? JSON.parse(saved) : null;
+  });
+  const [selectedJob, setSelectedJob] = useState(() => {
+    const saved = localStorage.getItem('selectedJob');
+    return saved ? JSON.parse(saved) : null;
+  });
+  const [matchData, setMatchData] = useState(() => {
+    const saved = localStorage.getItem('matchData');
+    return saved ? JSON.parse(saved) : null;
+  });
+  const [recommendations, setRecommendations] = useState(() => {
+    const saved = localStorage.getItem('recommendations');
+    return saved ? JSON.parse(saved) : null;
+  });
   const [jobs, setJobs] = useState([]);
 
-  // Mock job data - in real app, fetch from API
+  // Fetch real jobs from API
   useEffect(() => {
-    const mockJobs = [
-      {
-        id: 1,
-        title: "Frontend Developer",
-        company: "Tech Corp",
-        description: "We are looking for a skilled Frontend Developer with experience in React, JavaScript, and modern web technologies...",
-        skills: ["React", "JavaScript", "CSS", "HTML", "Git"],
-        experience: "2-4 years",
-        location: "Remote",
-        postedDate: "2 days ago"
-      },
-      {
-        id: 2,
-        title: "Full Stack Developer",
-        company: "StartupXYZ",
-        description: "Join our team as a Full Stack Developer. You'll work with Node.js, React, MongoDB, and AWS...",
-        skills: ["Node.js", "React", "MongoDB", "AWS", "Docker"],
-        experience: "3-5 years",
-        location: "New York",
-        postedDate: "1 week ago"
-      },
-      {
-        id: 3,
-        title: "Software Engineer",
-        company: "BigTech Inc",
-        description: "We're seeking a Software Engineer to work on scalable systems using Java, Spring Boot, and microservices...",
-        skills: ["Java", "Spring Boot", "Microservices", "SQL", "Kubernetes"],
-        experience: "4-6 years",
-        location: "San Francisco",
-        postedDate: "3 days ago"
-      }
-    ];
-    setJobs(mockJobs);
+    fetchJobs();
   }, []);
+
+  const fetchJobs = async () => {
+    try {
+      const response = await fetch('http://localhost:5001/api/jobs');
+      const data = await response.json();
+      if (data.success) {
+        setJobs(data.jobs.map(job => ({
+          id: job._id,
+          title: job.title,
+          company: job.company,
+          description: job.description,
+          skills: job.skills,
+          experience: job.experience,
+          location: job.location,
+          postedDate: new Date(job.createdAt).toLocaleDateString()
+        })));
+      }
+    } catch (error) {
+      console.error('Error fetching jobs:', error);
+    }
+  };
 
   const handleResumeUpload = (event) => {
     const file = event.target.files[0];
     if (file && (file.type === 'application/pdf' || file.type === 'application/vnd.openxmlformats-officedocument.wordprocessingml.document')) {
-      setUploadedResume(file);
+      const fileData = {
+        name: file.name,
+        size: file.size,
+        type: file.type,
+        lastModified: file.lastModified
+      };
+      setUploadedResume(fileData);
+      localStorage.setItem('uploadedResume', JSON.stringify(fileData));
     } else {
       alert('Please upload a PDF or DOCX file');
     }
@@ -63,48 +71,16 @@ const ApplicantDashboard = () => {
     }
 
     setSelectedJob(job);
+    localStorage.setItem('selectedJob', JSON.stringify(job));
     
-    // Mock match analysis - in real app, call API
-    const mockMatchData = {
-      overallMatch: 78,
-      breakdown: {
-        skills: {
-          score: 85,
-          details: {
-            matched: ["React", "JavaScript", "CSS"],
-            missing: ["Git", "HTML"]
-          }
-        },
-        experience: {
-          score: 70,
-          details: {
-            candidateYears: 2,
-            requiredYears: 3
-          }
-        },
-        education: {
-          score: 90,
-          details: {
-            match: "Bachelor's in Computer Science - Perfect match"
-          }
-        },
-        keywords: {
-          score: 75,
-          details: {}
-        }
-      }
-    };
-
-    const mockRecommendations = {
-      skillsToAdd: ["Git", "HTML", "TypeScript"],
-      skillImpact: 15,
-      experienceAdvice: "Consider highlighting any freelance or personal projects to demonstrate additional experience",
-      keywordsToAdd: ["responsive design", "web development", "frontend optimization"],
-      overallAdvice: "Strong technical foundation. Focus on adding missing skills and emphasizing relevant project experience."
-    };
-
-    setMatchData(mockMatchData);
-    setRecommendations(mockRecommendations);
+    // Apply to job - this will be implemented when resume processing is added
+    alert('Application functionality will be available once resume processing is implemented.');
+    
+    // Clear previous data
+    setMatchData(null);
+    setRecommendations(null);
+    localStorage.removeItem('matchData');
+    localStorage.removeItem('recommendations');
   };
 
   return (
@@ -143,9 +119,20 @@ const ApplicantDashboard = () => {
               </div>
               {uploadedResume && (
                 <div className="mt-4 p-4 bg-green-900/30 border border-green-700 rounded-xl">
-                  <p className="text-green-400 font-semibold">
-                    ✓ {uploadedResume.name} uploaded successfully!
-                  </p>
+                  <div className="flex justify-between items-center">
+                    <p className="text-green-400 font-semibold">
+                      ✓ {uploadedResume.name} uploaded successfully!
+                    </p>
+                    <button
+                      onClick={() => {
+                        setUploadedResume(null);
+                        localStorage.removeItem('uploadedResume');
+                      }}
+                      className="text-red-400 hover:text-red-300 text-sm font-medium transition-colors duration-200"
+                    >
+                      Remove
+                    </button>
+                  </div>
                 </div>
               )}
             </div>
