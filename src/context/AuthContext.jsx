@@ -47,11 +47,8 @@ export const AuthProvider = ({ children }) => {
 
   const register = async (userData) => {
     const response = await apiService.register(userData);
-    if (response.success) {
-      setUser(response.user);
-      localStorage.setItem('userType', userData.userType);
-      localStorage.setItem('userEmail', userData.email);
-    }
+    // Don't automatically log in user after registration
+    // User will need to login manually after signup
     return response;
   };
 

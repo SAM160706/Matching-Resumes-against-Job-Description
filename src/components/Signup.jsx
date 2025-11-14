@@ -13,6 +13,7 @@ const Signup = ({ userType }) => {
   });
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
+  const [success, setSuccess] = useState(false);
   const navigate = useNavigate();
   const { register } = useAuth();
 
@@ -49,11 +50,11 @@ const Signup = ({ userType }) => {
       const response = await register(userData);
       
       if (response.success) {
-        if (userType === 'applicant') {
-          navigate('/applicant-dashboard');
-        } else {
-          navigate('/recruiter-dashboard');
-        }
+        setSuccess(true);
+        // Show success message for 2 seconds then redirect to login
+        setTimeout(() => {
+          navigate(`/${userType}-login`);
+        }, 2000);
       }
     } catch (error) {
       setError(error.message || 'Registration failed. Please try again.');
@@ -80,7 +81,25 @@ const Signup = ({ userType }) => {
           </div>
         )}
         
+        {success && (
+          <div className="mb-4 p-3 bg-green-900/50 border border-green-500 rounded-lg text-green-300 text-sm animate-slideInDown">
+            ✅ Account created successfully! Redirecting to login...
+          </div>
+        )}
+        
         <form onSubmit={handleSubmit} className="space-y-4 animate-slideInUp animation-delay-500">
+          {success && (
+            <div className="text-center py-4">
+              <div className="text-green-400 text-lg font-semibold mb-2">
+                🎉 Welcome to JobMatch AI!
+              </div>
+              <div className="text-gray-300 text-sm">
+                Please wait while we redirect you to login...
+              </div>
+            </div>
+          )}
+          
+          <div className={success ? 'opacity-50 pointer-events-none' : ''}>
           <div className="grid grid-cols-2 gap-4">
             <div>
               <label className="block text-gray-300 font-medium mb-2">First Name</label>
@@ -165,11 +184,12 @@ const Signup = ({ userType }) => {
           
           <button
             type="submit"
-            disabled={loading}
+            disabled={loading || success}
             className="w-full bg-cyan-600 hover:bg-cyan-700 disabled:bg-gray-600 disabled:cursor-not-allowed text-white font-semibold py-4 px-6 rounded-xl transition-all duration-300 shadow-lg hover:shadow-xl transform hover:scale-105 animate-bounceIn animation-delay-900"
           >
-            {loading ? 'Creating Account...' : 'Sign Up'}
+            {loading ? 'Creating Account...' : success ? 'Account Created!' : 'Sign Up'}
           </button>
+          </div>
         </form>
         
         <div className="mt-6 text-center space-y-2 animate-fadeIn animation-delay-1000">
